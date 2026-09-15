@@ -1,0 +1,16 @@
+$kind: http-request
+description: ""
+url: http://127.0.0.1:8000/posts/1
+method: PUT
+body:
+  type: json
+  content: "{\r
+
+    \    \"title\": \"best countries in the world\",\r
+
+    \    \"content\": \"greece\",\r
+
+    \    \"published\": true\r
+
+    }\r\n"
+order: 4269144849788714
