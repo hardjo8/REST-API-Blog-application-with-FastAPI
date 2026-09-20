@@ -1,16 +1,34 @@
-from fastapi import FastAPI, Response, status,HTTPException
-from fastapi.params import Body
+from fastapi import FastAPI, Response, status,HTTPException,Depends
 from pydantic import BaseModel
-from typing import Optional
-import random
+import psycopg2
+import time
+from . import models,schemas
+from .database import engine, get_db
+from sqlalchemy.orm import session
+
 
 app = FastAPI()
 
+models.Base.metadata.create_all(bind=engine)
 
-class Post(BaseModel):
-    title: str
-    content: str
-    published:bool = True
+get_db()
+
+while True:
+
+
+    try:
+        conn = psycopg2.connect(host='localhost', dbname='fastapi', user='postgres',password='AmH*BJ147K')
+        cursor = conn.cursor()
+        print("Database connection was succesful")
+        break
+    except Exception as error:
+        time.sleep(2)
+        print(f"Connecting to database failed, Error {error}")
+
+
+
+
+
 
 
 my_posts = [{
@@ -38,40 +56,55 @@ def root():
 
 
 @app.get("/posts")
-def get_posts():
-    return {"data":my_posts}
+def get_posts(db:session = Depends(get_db)):
+    posts = db.query(models.Post).all()
+    return {"data":posts}
 
 
 @app.post("/posts", status_code= status.HTTP_201_CREATED)
-def create_posts(post:Post):
-    post_dict = post.dict()
-    post_dict["id"] = random.randint(0, 1000000)
-    my_posts.append(post_dict)
-    return {"data":post_dict}
+def create_posts(post:schemas.PostCreate,db:session = Depends(get_db)):
+    posts= models.Post(**post.dict())
+    db.add(posts)
+    db.commit()
+    db.refresh(posts)
+    return {"data":posts}
 
-@app.get("/posts/{id}")
-def get_specific_id_post(id:int):
-    post = find_post(id)
-    if not post:
+
+@app.get("/posts/{id}") 
+def get_specific_id_post(id:int,db:session = Depends(get_db)):
+    id_n = find_post(id)
+    post_id= db.query(models.Post).filter(models.Post.id == id).first()
+
+    if not id_n:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post with id {id} was not found")
-    print(post)
-    return {"post_detail":post}
+    return {"post_detail":post_id}
+
+
 
 @app.delete(("/posts/{id}"),status_code= status.HTTP_204_NO_CONTENT)
-def delete_post(id:int):
-    index = find_index_post(id)
-    if index == None:
+def delete_post(id:int,db:session = Depends(get_db)):
+    post_id= db.query(models.Post).filter(models.Post.id == id)
+    
+    if post_id.first() == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id: {id} does not exist")
-    my_posts.pop(index)
+    post_id.delete(synchronize_session = False)
+    db.commit()
+
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+
+
 @app.put("/posts/{id}")
-def update_post(id:int, post:Post):
-    index = find_index_post(id)
-    if index == None:
+def update_post(id:int, post:schemas.PostCreate,db:session = Depends(get_db)):
+    post_id= db.query(models.Post).filter(models.Post.id == id)
+    posts = post_id.first()
+
+    if posts == None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"post with id: {id} does not exist")
-    post_dict = post.dict()
-    post_dict["id"]= id
-    my_posts[index] = post_dict
-    return{"message":"you post was updated"}
+    post_id.update(post.dict(), synchronize_session = False)
+    db.commit()
+    return{"message":post_id.first()}
+

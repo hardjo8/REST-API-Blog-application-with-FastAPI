@@ -1,6 +1,6 @@
 $kind: http-request
 description: ""
-url: http://127.0.0.1:8000/posts/1
+url: http://127.0.0.1:8000/posts/34
 method: PUT
 body:
   type: json
@@ -8,7 +8,7 @@ body:
 
     \    \"title\": \"best countries in the world\",\r
 
-    \    \"content\": \"greece\",\r
+    \    \"content\": \"italy\",\r
 
     \    \"published\": true\r
 
