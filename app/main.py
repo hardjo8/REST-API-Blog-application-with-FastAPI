@@ -2,9 +2,11 @@ from fastapi import FastAPI, Response, status,HTTPException,Depends
 from pydantic import BaseModel
 import psycopg2
 import time
-from . import models,schemas
+from . import models,schemas,utils
 from .database import engine, get_db
 from sqlalchemy.orm import session
+from typing import List
+from sqlalchemy.exc import IntegrityError
 
 
 app = FastAPI()
@@ -27,57 +29,34 @@ while True:
 
 
 
-
-
-
-
-my_posts = [{
-    "title":"first dict",
-    "content":"im bored af",
-    "id":1
-},
-{
-    "title":"fav foods",
-    "content":"pizza",
-    "id":2
-}]
-def find_post(ids):
-    for p in my_posts:
-        if p["id"] == ids:
-            return p
-def find_index_post(id):
-    for i, p in enumerate(my_posts):
-        if p["id"] == id:
-            return i
 def root():
     return {"message": "Welcome to my API"} 
 
 
 
 
-@app.get("/posts")
+@app.get("/posts",response_model=List[schemas.PostRespone])
 def get_posts(db:session = Depends(get_db)):
     posts = db.query(models.Post).all()
-    return {"data":posts}
+    return posts
 
 
-@app.post("/posts", status_code= status.HTTP_201_CREATED)
+@app.post("/posts", status_code= status.HTTP_201_CREATED,response_model=schemas.PostRespone)
 def create_posts(post:schemas.PostCreate,db:session = Depends(get_db)):
     posts= models.Post(**post.dict())
     db.add(posts)
     db.commit()
     db.refresh(posts)
-    return {"data":posts}
+    return posts
 
 
-@app.get("/posts/{id}") 
+@app.get("/posts/{id}",response_model=schemas.PostRespone) 
 def get_specific_id_post(id:int,db:session = Depends(get_db)):
-    id_n = find_post(id)
     post_id= db.query(models.Post).filter(models.Post.id == id).first()
 
-    if not id_n:
+    if not post_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post with id {id} was not found")
-    return {"post_detail":post_id}
+    return post_id
 
 
 
@@ -96,7 +75,7 @@ def delete_post(id:int,db:session = Depends(get_db)):
 
 
 
-@app.put("/posts/{id}")
+@app.put("/posts/{id}",response_model=schemas.PostRespone)
 def update_post(id:int, post:schemas.PostCreate,db:session = Depends(get_db)):
     post_id= db.query(models.Post).filter(models.Post.id == id)
     posts = post_id.first()
@@ -106,5 +85,24 @@ def update_post(id:int, post:schemas.PostCreate,db:session = Depends(get_db)):
                                 detail=f"post with id: {id} does not exist")
     post_id.update(post.dict(), synchronize_session = False)
     db.commit()
-    return{"message":post_id.first()}
+    return post_id.first()
+
+
+
+@app.post("/users", status_code= status.HTTP_201_CREATED,response_model=schemas.CreatedUser)
+def CreateUser(user:schemas.UserCreate, db:session = Depends(get_db),):
+    #has the password - user.passowrd
+    hashed_password = utils.hash(user.password)
+    user.password = hashed_password
+    try:
+        new_user = models.User(email=user.email, password=user.password)
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)       
+        return new_user
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email already exists")
 
