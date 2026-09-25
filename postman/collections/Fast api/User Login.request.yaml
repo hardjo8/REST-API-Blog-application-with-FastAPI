@@ -18,5 +18,4 @@ scripts:
   - type: afterResponse
     code: pm.environment.set("JWT", pm.response.json().access_token);
     language: text/javascript
-examples: .resources/User Login.resources/examples
 order: 4451367041383522

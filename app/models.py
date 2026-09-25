@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime,ForeignKey
 from sqlalchemy.sql.expression import text
 from datetime import datetime
 from .database import Base
@@ -12,6 +12,7 @@ class Post(Base):
     content = Column(String(500), nullable=False)
     published = Column(Boolean, server_default='true')
     created_at = Column(DateTime, nullable=False, server_default=text('now()'))
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"),nullable=False)
 
 
 class User(Base):
@@ -20,3 +21,5 @@ class User(Base):
     password = Column(String,nullable=False)
     id = Column(Integer, primary_key=True, nullable=False)
     created_at = Column(DateTime, nullable=False, server_default=text('now()'))
+
+

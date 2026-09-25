@@ -10,23 +10,22 @@ router = APIRouter(
     tags=[["posts"]]
 )
 
-@router.get("/",response_model=List[schemas.PostRespone])
-def get_posts(db:session = Depends(get_db)):
+@router.get("/",response_model=List[schemas.PostResponse])
+def get_posts(db:session = Depends(get_db),current_user= Depends(oauth2.get_current_user)):
     posts = db.query(models.Post).all()
     return posts
 
 
-@router.post("/", status_code= status.HTTP_201_CREATED,response_model=schemas.PostRespone)
+@router.post("/", status_code= status.HTTP_201_CREATED,response_model=schemas.PostResponse)
 def create_posts(post:schemas.PostCreate,db:session = Depends(get_db),current_user= Depends(oauth2.get_current_user)):
-    posts= models.Post(**post.dict())
-    print(current_user)
+    posts= models.Post(user_id = current_user.id,**post.dict())
     db.add(posts)
     db.commit()
     db.refresh(posts)
     return posts
 
 
-@router.get("/{id}",response_model=schemas.PostRespone) 
+@router.get("/{id}",response_model=schemas.PostResponse) 
 def get_specific_id_post(id:int,db:session = Depends(get_db)):
     post_id= db.query(models.Post).filter(models.Post.id == id).first()
 
@@ -39,10 +38,13 @@ def get_specific_id_post(id:int,db:session = Depends(get_db)):
 @router.delete(("/{id}"),status_code= status.HTTP_204_NO_CONTENT)
 def delete_post(id:int,db:session = Depends(get_db),current_user = Depends(oauth2.get_current_user)):
     post_id= db.query(models.Post).filter(models.Post.id == id)
+    post = post_id.first()
     
     if post_id.first() == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id: {id} does not exist")
+    if post.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail=f"NOT AUTHORIZED TO PERFROM REQUESTED ACTION")
     post_id.delete(synchronize_session = False)
     db.commit()
 
@@ -51,14 +53,18 @@ def delete_post(id:int,db:session = Depends(get_db),current_user = Depends(oauth
 
 
 
-@router.put("/{id}",response_model=schemas.PostRespone)
-def update_post(id:int, post:schemas.PostCreate,db:session = Depends(get_db),user_id: int = Depends(oauth2.get_current_user)):
+@router.put("/{id}",response_model=schemas.PostResponse)
+def update_post(id:int, post:schemas.PostCreate,db:session = Depends(get_db),current_user: int = Depends(oauth2.get_current_user)):
     post_id= db.query(models.Post).filter(models.Post.id == id)
     posts = post_id.first()
 
     if posts == None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"post with id: {id} does not exist")
+    if posts.user_id != current_user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail=f"NOT AUTHORIZED TO PERFROM REQUESTED ACTION")
+    
+    
     post_id.update(post.dict(), synchronize_session = False)
     db.commit()
     return post_id.first()

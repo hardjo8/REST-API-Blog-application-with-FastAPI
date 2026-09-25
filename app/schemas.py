@@ -16,9 +16,10 @@ class PostCreate(PostBase):
 class Config:
     orm_mode=True
 
-class PostRespone(PostBase):
+class PostResponse(PostBase):
     created_at : datetime
     id:int
+    user_id : int
 
 class UserCreate(BaseModel):
     email:EmailStr
