@@ -1,20 +1,41 @@
 from jose import jwt,JWTError
 from passlib.context import CryptContext
 from datetime import datetime,timedelta
+from . import schemas,database,models
+from fastapi import Depends,HTTPException,status
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.orm import session
 
 
 
-#SECRET_KEY
-#Algorithm
-#Expiration_Time
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 SECRET_KEY = "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ALGORITHM = "HS256" 
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 def create_access_token(data : dict):
     to_encode = data.copy()
-    expire = datetime.now() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp":expire})
     encoded_jwt= jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+def verify_access_token(token: str, credentials_exception):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        id : int = payload.get("user_ID")
+        if id is None:
+            raise credentials_exception
+        token_data = schemas.TokenData(id=id)
+    except JWTError:
+        raise credentials_exception
+    return token_data
+    
+    
+def get_current_user(token:str= Depends(oauth2_scheme),db:session = Depends(database.get_db)):
+    credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid Credentials",
+                                           headers={"WWW-authentication":"Bearer"})
+    token = verify_access_token(token , credentials_exception= credentials_exception)
+    user = db.query(models.User).filter(models.User.id==token.id).first()
+    return user

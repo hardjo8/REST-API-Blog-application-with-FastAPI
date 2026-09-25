@@ -1,13 +1,22 @@
 $kind: http-request
-url: http://127.0.0.1:8000/login
+url: "{{URL}}login"
 method: POST
 body:
-  type: json
-  content: "{\r
-
-    \    \"email\":\"johnbigou@gmail.com\",\r
-
-    \    \"password\":\"idndnv34k\"\r
-
-    }"
+  type: formdata
+  content:
+    - type: text
+      key: username
+      value: johnhardas@gmail.com
+      description: ""
+      disabled: false
+    - type: text
+      key: password
+      value: password123
+      description: ""
+      disabled: false
+scripts:
+  - type: afterResponse
+    code: pm.environment.set("JWT", pm.response.json().access_token);
+    language: text/javascript
+examples: .resources/User Login.resources/examples
 order: 4451367041383522
