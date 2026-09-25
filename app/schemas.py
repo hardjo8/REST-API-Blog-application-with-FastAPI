@@ -4,7 +4,12 @@ from datetime import datetime
 from typing import Optional
 
 
-
+class CreatedUser(BaseModel):
+    email: EmailStr
+    id:int
+    created_at:datetime
+    
+    
 class PostBase(BaseModel):
     title: str
     content: str
@@ -20,15 +25,12 @@ class PostResponse(PostBase):
     created_at : datetime
     id:int
     user_id : int
+    owner : CreatedUser
 
 class UserCreate(BaseModel):
     email:EmailStr
     password:str
     
-class CreatedUser(BaseModel):
-    email: EmailStr
-    id:int
-    created_at:datetime
 
 class UserLogin(BaseModel):
     email : EmailStr
