@@ -1,0 +1,21 @@
+$kind: http-request
+url: "{{URL}}login"
+method: POST
+body:
+  type: formdata
+  content:
+    - type: text
+      key: username
+      value: johnhardas@gmail.com
+      description: ""
+      disabled: false
+    - type: text
+      key: password
+      value: password123
+      description: ""
+      disabled: false
+scripts:
+  - type: afterResponse
+    code: pm.environment.set("JWT", pm.response.json().access_token);
+    language: text/javascript
+order: 4451367041383522

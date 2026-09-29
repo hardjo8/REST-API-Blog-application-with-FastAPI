@@ -1,0 +1,11 @@
+$kind: http-request
+description: ""
+url: "{{URL}}posts?search=y"
+method: GET
+queryParams:
+  search: y
+auth:
+  type: bearer
+  credentials:
+    token: "{{JWT}}"
+order: 3070365847848038

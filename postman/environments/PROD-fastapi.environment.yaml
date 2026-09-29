@@ -1,0 +1,4 @@
+name: 'PROD:fastapi'
+values:
+  - key: URL
+    value: ''
