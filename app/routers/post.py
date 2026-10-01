@@ -22,7 +22,7 @@ def create_posts(post:schemas.PostCreate,db:session = Depends(get_db),current_us
     db.add(posts)
     db.commit()
     db.refresh(posts)
-    return post
+    return posts
 
 
 @router.get("/{id}",response_model=schemas.PostResponse) 
